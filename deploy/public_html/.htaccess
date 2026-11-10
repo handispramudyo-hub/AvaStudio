@@ -1,0 +1,24 @@
+# AvaStudio — frontend SPA (React) + API Laravel dalam satu document root.
+# File ini di-upload ke public_html/ bersama hasil build frontend (dist/).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Teruskan header Authorization (Bearer token Sanctum)
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Semua request /api/* ditangani Laravel
+    RewriteRule ^api(/.*)?$ index.php [L]
+
+    # File & folder yang benar-benar ada (assets, gambar, symlink storage) disajikan langsung
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Sisanya → SPA fallback (React Router)
+    RewriteRule ^ index.html [L]
+</IfModule>
+
+# Jangan tampilkan daftar isi folder
+Options -Indexes
