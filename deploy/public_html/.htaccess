@@ -1,5 +1,8 @@
 # AvaStudio — frontend SPA (React) + API Laravel dalam satu document root.
-# File ini di-upload ke public_html/ bersama hasil build frontend (dist/).
+#
+# Aturan penting: JANGAN menyerahkan directory root ke DirectoryIndex, karena
+# cPanel mendahulukan index.php (Laravel) sebelum index.html (SPA). Semua
+# request non-/api dan non-file harus berakhir di index.html.
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
@@ -11,14 +14,19 @@
     # Semua request /api/* ditangani Laravel
     RewriteRule ^api(/.*)?$ index.php [L]
 
-    # File & folder yang benar-benar ada (assets, gambar, symlink storage) disajikan langsung
-    RewriteCond %{REQUEST_FILENAME} -f [OR]
-    RewriteCond %{REQUEST_FILENAME} -d
+    # Root selalu SPA
+    RewriteRule ^$ index.html [L]
+
+    # File statis yang benar-benar ada (assets, favicon, /storage/...) disajikan langsung
+    RewriteCond %{REQUEST_FILENAME} -f
     RewriteRule ^ - [L]
 
-    # Sisanya → SPA fallback (React Router)
+    # Sisanya -> SPA fallback (React Router)
     RewriteRule ^ index.html [L]
 </IfModule>
+
+# Root docroot wajib index.html (SPA), bukan index.php (Laravel)
+DirectoryIndex index.html index.php
 
 # Jangan tampilkan daftar isi folder
 Options -Indexes
