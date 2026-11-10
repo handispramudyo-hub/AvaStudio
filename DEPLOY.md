@@ -169,6 +169,33 @@ Frontend: ulangi `npm run build` di lokal lalu unggah ulang isi `dist/` ke `~/pu
 
 ---
 
+## 9. Catatan instalasi aktual (akun Rumahweb `hank7435`)
+
+Struktur yang dipakai saat deploy pertama:
+
+```
+~/ava/                                              → repo GitHub (backend Laravel)
+~/public_html/avastudio.handispramudio.my.id/       → docroot subdomain (SPA + index.php)
+```
+
+| Hal | Nilai |
+| --- | --- |
+| SSH | `ssh hank7435@202.10.43.184 -p 2223` (port **2223**, bukan 22/2222) |
+| Docroot | `~/public_html/avastudio.handispramudio.my.id` |
+| Database | `hank7435_ava_studio` / user `hank7435_ava_user` |
+| PHP | CloudLinux PHP Selector → versi **8.4** (`native` tidak punya `mbstring`) |
+
+### Kendala khas hosting ini
+
+1. **`fork: Resource temporarily unavailable`** — limit proses LVE penuh (biasanya karena
+   proses npm/vite lama nyangkut). Cek `ps -u $USER`, bunuh sisa proses, baru ulang perintah.
+2. **`proc_open` diblokir** → `composer install` gagal di post-script. Jalankan
+   `composer install --no-dev --optimize-autoloader --no-scripts` lalu `php artisan package:discover`.
+3. **`mbstring` tidak ada** → Laravel error `Call to undefined function mb_split()`.
+   Perbaiki: `cloudlinux-selector set --json --interpreter php --current-version 8.4`.
+4. **`symlink` diblokir di PHP** → `php artisan storage:link` gagal. Buat manual:
+   `ln -sfn ~/ava/backend/storage/app/public <docroot>/storage`.
+
 ## Troubleshooting
 
 | Masalah | Solusi |
