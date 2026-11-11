@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
+  ArrowUpRight,
   Camera,
   ChevronRight,
   Heart,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   MessageCircle,
   PackageOpen,
@@ -18,18 +21,21 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { getImageUrl, rupiah } from "../lib/api";
 import type { Avatar } from "../lib/types";
 
 /**
- * Dynamic Brand Logo
- * Loads custom uploaded logo image if available in settings,
- * otherwise falls back to the aesthetic typography logo with pink pastel mark.
+ * Dynamic brand logo — custom uploaded logo or the built-in sparkle mark.
  */
-export function Logo({ compact = false, className = "" }: { compact?: boolean; className?: string }) {
+export function Logo({
+  compact = false,
+  className = "",
+}: {
+  compact?: boolean;
+  className?: string;
+}) {
   const { settings } = useSettings();
   const logoImage = getImageUrl(settings.site_logo);
   const brandName = settings.site_name || "AVA Studio";
@@ -40,19 +46,18 @@ export function Logo({ compact = false, className = "" }: { compact?: boolean; c
         <img
           src={logoImage}
           alt={brandName}
-          className="h-9 max-w-[170px] object-contain rounded-md"
+          className="h-9 max-w-[170px] rounded-xl object-contain"
         />
       ) : (
         <span className="logo-mark" title="AVA Studio Official">
-          <Sparkles size={18} strokeWidth={2.2} />
+          <Sparkles size={17} strokeWidth={2.2} />
         </span>
       )}
       {!compact && (
         <span className="font-bold tracking-tight">
           {brandName.includes(" ") ? (
             <>
-              {brandName.split(" ")[0]}{" "}
-              <b>{brandName.split(" ").slice(1).join(" ")}</b>
+              {brandName.split(" ")[0]} <b>{brandName.split(" ").slice(1).join(" ")}</b>
             </>
           ) : (
             brandName
@@ -72,37 +77,37 @@ const publicLinks = [
 
 export function PublicHeader() {
   const [open, setOpen] = useState(false);
-  const { settings } = useSettings();
+  const location = useLocation();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
   return (
     <header className="public-header">
       <div className="container nav-row">
         <Logo />
-        <nav className={`main-nav ${open ? "is-open" : ""}`}>
+        <nav className={`main-nav ${open ? "is-open" : ""}`} aria-label="Navigasi utama">
           {publicLinks.map(([label, path]) => (
-            <NavLink
-              key={path}
-              to={path}
-              end={path === "/"}
-              onClick={() => setOpen(false)}
-            >
+            <NavLink key={path} to={path} end={path === "/"} onClick={() => setOpen(false)}>
               {label}
             </NavLink>
           ))}
           <Link className="btn btn-primary mobile-order" to="/order" onClick={() => setOpen(false)}>
-            <MessageCircle size={17} /> Order sekarang
+            <MessageCircle size={16} /> Order sekarang
           </Link>
         </nav>
         <div className="nav-actions">
           <Link className="btn btn-primary desktop-order" to="/order">
-            <MessageCircle size={17} /> Order sekarang
+            <MessageCircle size={16} /> Order sekarang
           </Link>
           <button
             className="icon-button menu-button"
-            onClick={() => setOpen(!open)}
-            aria-label="Buka menu"
+            onClick={() => setOpen((value) => !value)}
+            aria-label={open ? "Tutup menu" : "Buka menu"}
+            aria-expanded={open}
           >
-            {open ? <X /> : <Menu />}
+            {open ? <X size={19} /> : <Menu size={19} />}
           </button>
         </div>
       </div>
@@ -115,19 +120,26 @@ export function Footer() {
   const cleanPhone = (settings.whatsapp_number || "6281234567890").replace(/[^0-9]/g, "");
   const waLink = `https://wa.me/${cleanPhone.startsWith("08") ? "62" + cleanPhone.slice(1) : cleanPhone}`;
   const igLink = settings.instagram_url || "https://instagram.com";
+  const email = settings.contact_email || "halo@avastudio.id";
 
   return (
     <footer className="footer">
       <div className="container footer-grid">
         <div>
           <Logo />
-          <p>{settings.footer_about || "Jasa styling avatar Roblox yang dibuat personal, detail, dan penuh karakter aesthetic."}</p>
+          <p>
+            {settings.footer_about ||
+              "Jasa styling avatar Roblox yang dibuat personal, detail, dan penuh karakter aesthetic."}
+          </p>
           <div className="social-row">
             <a href={igLink} target="_blank" rel="noreferrer" aria-label="Instagram">
-              <Camera size={19} />
+              <Camera size={18} />
             </a>
             <a href={waLink} target="_blank" rel="noreferrer" aria-label="WhatsApp">
-              <MessageCircle size={19} />
+              <MessageCircle size={18} />
+            </a>
+            <a href={`mailto:${email}`} aria-label="Email">
+              <Mail size={18} />
             </a>
           </div>
         </div>
@@ -135,7 +147,7 @@ export function Footer() {
           <h4>Jelajahi</h4>
           <Link to="/catalog">Katalog AVA</Link>
           <Link to="/how-to-order">Cara order</Link>
-          <Link to="/order">Form Pemesanan</Link>
+          <Link to="/order">Form pemesanan</Link>
         </div>
         <div>
           <h4>Bantuan</h4>
@@ -144,12 +156,15 @@ export function Footer() {
           <span>{settings.operating_hours || "Senin–Sabtu, 09.00–20.00 WIB"}</span>
         </div>
         <div className="footer-note">
-          <Sparkles size={18} />
+          <Sparkles size={17} />
           <p>AVA Studio tidak pernah meminta password, cookie, atau akses login Roblox kamu.</p>
         </div>
       </div>
       <div className="container footer-bottom">
-        <span>© 2026 {settings.site_name || "AVA Studio"}. {settings.site_tagline || "Your Avatar, Your Style ♡"}</span>
+        <span>
+          © 2026 {settings.site_name || "AVA Studio"}.{" "}
+          {settings.site_tagline || "Your Avatar, Your Style ♡"}
+        </span>
         <span>Roblox adalah merek dagang pemiliknya masing-masing.</span>
       </div>
     </footer>
@@ -168,8 +183,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 }
 
 /**
- * Avatar Art / Cover Image Card
- * Renders real uploaded cover image or high quality aesthetic pastel fallback
+ * Avatar cover art with a graceful, on-brand fallback.
  */
 export function AvatarArt({
   imageSrc,
@@ -185,28 +199,29 @@ export function AvatarArt({
 
   if (resolvedUrl && !error) {
     return (
-      <div className={`avatar-art overflow-hidden relative ${className}`}>
+      <div className={`avatar-art relative ${className}`}>
         <img
           src={resolvedUrl}
           alt={name}
           onError={() => setError(true)}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           loading="lazy"
         />
       </div>
     );
   }
 
-  // Graceful Aesthetic Fallback Artwork
   return (
     <div
-      className={`avatar-art flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-pink-100 via-rose-50 to-pink-200 ${className}`}
+      className={`avatar-art flex flex-col items-center justify-center bg-gradient-to-br from-pink-100 via-rose-50 to-pink-200 p-6 text-center ${className}`}
     >
-      <div className="w-20 h-20 rounded-full bg-white/70 shadow-sm flex items-center justify-center mb-3">
-        <Sparkles className="text-pink-500 w-10 h-10 animate-pulse" />
+      <div className="mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-white/75 shadow-sm">
+        <Sparkles className="h-9 w-9 text-brand-600" />
       </div>
-      <b className="text-pink-900 text-sm font-semibold">{name}</b>
-      <span className="text-xs text-pink-700/70 mt-1">Roblox Styling Portfolio</span>
+      <b className="text-sm font-semibold text-brand-900">{name}</b>
+      <span className="mt-1 text-2xs uppercase tracking-[0.18em] text-brand-700">
+        Roblox styling portfolio
+      </span>
     </div>
   );
 }
@@ -216,58 +231,71 @@ export function AvatarCard({ avatar }: { avatar: Avatar }) {
   const [liked, setLiked] = useState(false);
 
   return (
-    <article className="avatar-card group relative bg-white border border-[#F3DCE8] rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between">
-      <Link to={`/avatars/${avatar.slug}`} className="block relative aspect-[4/5] overflow-hidden bg-pink-50 m-2.5 rounded-2xl">
-        <AvatarArt imageSrc={avatar.cover_image} name={avatar.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-        
+    <article className="avatar-card group">
+      <div className="avatar-card-media">
+        <AvatarArt
+          imageSrc={avatar.cover_image}
+          name={avatar.name}
+          className="h-full w-full object-cover"
+        />
+
+        <Link
+          to={`/avatars/${avatar.slug}`}
+          className="absolute inset-0 z-0"
+          aria-label={`Lihat detail ${avatar.name}`}
+        />
+
         {avatar.badge && (
-          <span className="absolute top-3 left-3 z-10 px-3 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-white/90 backdrop-blur-md text-[#DB5793] shadow-sm border border-pink-100">
-            ✦ {avatar.badge}
+          <span className="absolute left-3 top-3 z-10 rounded-full border border-white/70 bg-white/92 px-3 py-1 text-2xs font-extrabold uppercase tracking-[0.12em] text-brand-700 shadow-sm backdrop-blur">
+            {avatar.badge}
           </span>
         )}
 
         <button
-          className={`absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center transition-all ${
-            liked ? "text-pink-600 scale-110" : "text-pink-400 hover:text-pink-600 hover:scale-105"
+          type="button"
+          className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/92 shadow-sm backdrop-blur transition-all ${
+            liked ? "text-brand-600" : "text-brand-600 hover:text-brand-700"
           }`}
-          aria-label={`Sukai ${avatar.name}`}
-          onClick={(event) => {
-            event.preventDefault();
-            setLiked(!liked);
-          }}
+          aria-label={liked ? `Batal sukai ${avatar.name}` : `Sukai ${avatar.name}`}
+          aria-pressed={liked}
+          onClick={() => setLiked((value) => !value)}
         >
-          <Heart size={17} fill={liked ? "currentColor" : "none"} />
+          <Heart size={15} fill={liked ? "currentColor" : "none"} />
         </button>
-      </Link>
+      </div>
 
-      <div className="p-5 pt-2 flex flex-col justify-between flex-1">
+      <div className="avatar-card-body">
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#DB5793] bg-[#FFF4F9] px-2.5 py-0.5 rounded-md border border-[#F3DCE8]">
-              {primaryCategory}
-            </span>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="tag">{primaryCategory}</span>
+            {avatar.is_featured && (
+              <span className="text-2xs font-bold uppercase tracking-wider text-brand-600">
+                Featured
+              </span>
+            )}
           </div>
 
-          <h3 className="text-lg font-bold text-[#3D2636] group-hover:text-pink-600 transition-colors line-clamp-1 mb-1">
+          <h3 className="mb-1 text-lg font-bold leading-snug text-ink transition-colors group-hover:text-brand-700">
             <Link to={`/avatars/${avatar.slug}`}>{avatar.name}</Link>
           </h3>
 
-          <p className="text-xs text-[#94667D] line-clamp-2 leading-relaxed mb-4">
-            {avatar.description}
-          </p>
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted">{avatar.description}</p>
         </div>
 
-        <div className="pt-3 border-t border-pink-50 flex items-center justify-between">
+        <div className="mt-4 flex items-end justify-between gap-3 border-t border-line pt-4">
           <div>
-            <span className="text-[10px] text-[#94667D] uppercase font-bold tracking-wider block">Biaya Jasa</span>
-            <strong className="text-base font-extrabold text-[#3D2636]">{rupiah(avatar.starting_price)}</strong>
+            <span className="block text-2xs font-bold uppercase tracking-[0.12em] text-faint">
+              Biaya jasa
+            </span>
+            <strong className="text-lg font-extrabold text-ink">
+              {rupiah(avatar.starting_price)}
+            </strong>
           </div>
-          
           <Link
             to={`/avatars/${avatar.slug}`}
-            className="text-xs font-bold text-pink-600 group-hover:text-pink-700 flex items-center gap-1 hover:underline"
+            className="inline-flex items-center gap-1 text-2xs font-bold text-brand-700 transition-colors hover:text-brand-600"
           >
-            Detail <ChevronRight size={15} />
+            Detail <ArrowUpRight size={14} />
           </Link>
         </div>
       </div>
@@ -275,35 +303,87 @@ export function AvatarCard({ avatar }: { avatar: Avatar }) {
   );
 }
 
-export function SectionTitle({
+export function SectionHeading({
   eyebrow,
   title,
   copy,
-  align = "center",
+  action,
+  align = "left",
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   copy?: string;
-  align?: "center" | "left";
+  action?: ReactNode;
+  align?: "left" | "center";
 }) {
   return (
-    <div className={`section-title ${align === "left" ? "align-left" : ""}`}>
-      <span className="kicker">
-        <Sparkles size={14} /> {eyebrow}
-      </span>
-      <h2>{title}</h2>
-      {copy && <p>{copy}</p>}
+    <div className={`section-head ${align === "center" ? "is-center" : ""}`}>
+      <div>
+        {eyebrow && (
+          <span className="eyebrow">
+            <Sparkles size={13} /> {eyebrow}
+          </span>
+        )}
+        <h2>{title}</h2>
+        {copy && <p>{copy}</p>}
+      </div>
+      {action && <div className="section-head-actions">{action}</div>}
     </div>
   );
 }
 
-const adminLinks = [
-  { label: "Overview", icon: LayoutDashboard, path: "/admin" },
-  { label: "Avatar", icon: PanelsTopLeft, path: "/admin/avatars" },
-  { label: "Kategori", icon: Tags, path: "/admin/categories" },
-  { label: "Pesanan", icon: PackageOpen, path: "/admin/orders" },
-  { label: "Testimonial", icon: UsersRound, path: "/admin/testimonials" },
-  { label: "Pengaturan", icon: Settings, path: "/admin/settings" },
+export function PageHero({
+  eyebrow,
+  title,
+  copy,
+  aside,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  copy?: string;
+  aside?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <section className="page-hero">
+      <div className="container">
+        <div className="page-hero-row">
+          <div>
+            <span className="eyebrow">
+              <Sparkles size={13} /> {eyebrow}
+            </span>
+            <h1>{title}</h1>
+            {copy && <p className="lede">{copy}</p>}
+            {children}
+          </div>
+          {aside}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const navGroups = [
+  {
+    label: "Workspace",
+    links: [
+      { label: "Overview", icon: LayoutDashboard, path: "/admin" },
+      { label: "Avatar", icon: PanelsTopLeft, path: "/admin/avatars" },
+      { label: "Kategori", icon: Tags, path: "/admin/categories" },
+    ],
+  },
+  {
+    label: "Operasional",
+    links: [
+      { label: "Pesanan", icon: PackageOpen, path: "/admin/orders" },
+      { label: "Testimoni", icon: UsersRound, path: "/admin/testimonials" },
+    ],
+  },
+  {
+    label: "Sistem",
+    links: [{ label: "Pengaturan", icon: Settings, path: "/admin/settings" }],
+  },
 ];
 
 export function AdminLayout({
@@ -318,6 +398,11 @@ export function AdminLayout({
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -326,40 +411,61 @@ export function AdminLayout({
 
   return (
     <div className="admin-shell">
-      <aside className={`admin-sidebar ${open ? "is-open" : ""}`}>
+      <aside className={`admin-sidebar ${open ? "is-open" : ""}`} aria-label="Navigasi admin">
         <div className="admin-logo-row">
           <Logo />
-          <button className="icon-button sidebar-close" onClick={() => setOpen(false)}>
-            <X />
+          <button
+            className="icon-button sidebar-close"
+            onClick={() => setOpen(false)}
+            aria-label="Tutup menu"
+          >
+            <X size={19} />
           </button>
         </div>
+
         <nav>
-          <span className="nav-label">Workspace</span>
-          {adminLinks.map(({ label, icon: Icon, path }) => (
-            <NavLink key={path} to={path} end={path === "/admin"} onClick={() => setOpen(false)}>
-              <Icon size={19} /> {label}
-            </NavLink>
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <span className="nav-label">{group.label}</span>
+              {group.links.map(({ label, icon: Icon, path }) => (
+                <NavLink
+                  key={path}
+                  to={path}
+                  end={path === "/admin"}
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon size={18} /> {label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
-        <div className="admin-profile flex items-center justify-between p-3 border-t border-pink-100">
-          <div className="flex items-center gap-2">
-            <div className="profile-avatar bg-pink-500 text-white font-bold rounded-full w-9 h-9 flex items-center justify-center text-xs">
-              {user?.name ? user.name.slice(0, 2).toUpperCase() : "AS"}
+
+        <div className="admin-sidebar-footer">
+          <div className="admin-profile">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="profile-avatar">
+                {user?.name ? user.name.slice(0, 2).toUpperCase() : "AS"}
+              </div>
+              <div className="min-w-0">
+                <strong className="block truncate text-xs font-semibold text-ink">
+                  {user?.name || "Ava Studio"}
+                </strong>
+                <span className="block truncate text-2xs text-muted">{user?.email || "Admin"}</span>
+              </div>
             </div>
-            <div>
-              <strong className="block text-sm font-semibold">{user?.name || "Ava Studio"}</strong>
-              <span className="text-xs text-muted-foreground">{user?.email || "Admin"}</span>
-            </div>
+            <button
+              onClick={handleLogout}
+              title="Keluar"
+              aria-label="Keluar dari admin"
+              className="row-action"
+            >
+              <LogOut size={15} />
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            title="Keluar"
-            className="p-1.5 rounded-md hover:bg-pink-100 text-pink-700 transition"
-          >
-            <LogOut size={16} />
-          </button>
         </div>
       </aside>
+
       {open && (
         <button
           className="sidebar-overlay"
@@ -367,18 +473,23 @@ export function AdminLayout({
           aria-label="Tutup menu"
         />
       )}
+
       <div className="admin-main">
         <header className="admin-topbar">
-          <button className="icon-button admin-menu" onClick={() => setOpen(true)}>
-            <Menu />
+          <button
+            className="icon-button admin-menu"
+            onClick={() => setOpen(true)}
+            aria-label="Buka menu admin"
+          >
+            <Menu size={19} />
           </button>
-          <div>
-            <h1>{title}</h1>
-            <p>{subtitle}</p>
+          <div className="min-w-0">
+            <h1 className="truncate">{title}</h1>
+            <p className="truncate">{subtitle}</p>
           </div>
           <div className="admin-actions">
             <Link to="/" target="_blank" className="view-site">
-              Lihat website <ChevronRight size={16} />
+              Lihat website <ChevronRight size={15} />
             </Link>
           </div>
         </header>
@@ -390,48 +501,46 @@ export function AdminLayout({
 
 export function StatusPill({ status }: { status: string }) {
   const normalized = status.toLowerCase().replace(/[\s_]+/g, "-");
-  return (
-    <span className={`status-pill status-${normalized}`}>
-      {status}
-    </span>
-  );
+  const label = status.replace(/[_-]+/g, " ");
+  return <span className={`status-pill status-${normalized}`}>{label}</span>;
 }
 
 export function PageToolbar({
   search,
   onSearch,
+  placeholder = "Cari data...",
   children,
 }: {
   search: string;
   onSearch: (value: string) => void;
+  placeholder?: string;
   children?: ReactNode;
 }) {
   return (
     <div className="page-toolbar">
       <label className="table-search">
-        <Search size={18} />
+        <Search size={17} />
         <input
           value={search}
-          onChange={(e) => onSearch(e.target.value)}
-          placeholder="Cari data..."
+          onChange={(event) => onSearch(event.target.value)}
+          placeholder={placeholder}
+          aria-label={placeholder}
         />
       </label>
-      <div className="toolbar-actions">
-        {children}
-      </div>
+      <div className="toolbar-actions">{children}</div>
     </div>
   );
 }
 
 export function Rating({ value = 5 }: { value?: number }) {
   return (
-    <div className="rating flex gap-0.5 text-pink-400" aria-label={`${value} dari 5 bintang`}>
-      {[1, 2, 3, 4, 5].map((i) => (
+    <div className="rating" aria-label={`${value} dari 5 bintang`}>
+      {[1, 2, 3, 4, 5].map((index) => (
         <Star
-          key={i}
-          size={15}
-          fill={i <= value ? "currentColor" : "none"}
-          className={i <= value ? "text-pink-400" : "text-gray-300"}
+          key={index}
+          size={14}
+          fill={index <= value ? "currentColor" : "none"}
+          className={index <= value ? "text-brand-600" : "text-line-strong"}
         />
       ))}
     </div>

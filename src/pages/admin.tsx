@@ -1,16 +1,26 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  ArrowUpRight,
+  Check,
   Eye,
   EyeOff,
+  ImagePlus,
+  Inbox,
   Layers3,
+  MessageCircle,
   PackageOpen,
+  PanelsTopLeft,
   Pencil,
   Plus,
+  Quote,
   Save,
+  Settings2,
   Sparkles,
+  Tags,
   Trash2,
   TrendingUp,
   UploadCloud,
+  UsersRound,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +28,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { z } from "zod";
-import { AdminLayout, AvatarArt, Logo, PageToolbar, StatusPill } from "../components/ui";
+import { AdminLayout, AvatarArt, Logo, PageToolbar, Rating, StatusPill } from "../components/ui";
 import { useAuth } from "../contexts/AuthContext";
 import { useSettings } from "../contexts/SettingsContext";
 import { api, getImageUrl, rupiah } from "../lib/api";
@@ -64,8 +74,7 @@ export function AdminLoginPage() {
     } catch (err: any) {
       console.error(err);
       toast.error(
-        err.response?.data?.message ||
-          "Gagal masuk. Periksa kembali email dan password kamu."
+        err.response?.data?.message || "Gagal masuk. Periksa kembali email dan password kamu.",
       );
     }
   };
@@ -96,7 +105,9 @@ export function AdminLoginPage() {
           <span className="mobile-login-logo">
             <Logo />
           </span>
-          <p className="eyebrow">Admin workspace</p>
+          <p className="eyebrow">
+            <Sparkles size={13} /> Admin workspace
+          </p>
           <h1>Welcome back!</h1>
           <p>Masuk untuk mengelola katalog, kategori, dan pesanan AVA Studio.</p>
 
@@ -118,19 +129,21 @@ export function AdminLoginPage() {
                 type="button"
                 className="icon-button"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label="Tampilkan password"
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            {errors.password && (
-              <small className="field-error">{errors.password.message}</small>
-            )}
+            {errors.password && <small className="field-error">{errors.password.message}</small>}
           </label>
 
           <button type="submit" disabled={isSubmitting} className="btn btn-primary btn-lg w-full">
             {isSubmitting ? "Memverifikasi..." : "Masuk ke Dashboard"}
           </button>
+
+          <p className="mt-1 text-center text-2xs text-faint">
+            Akses khusus tim AVA Studio. Jangan bagikan kredensial admin kamu.
+          </p>
         </form>
       </section>
     </div>
@@ -140,9 +153,17 @@ export function AdminLoginPage() {
 // ==========================================
 // 2. DASHBOARD OVERVIEW PAGE
 // ==========================================
+const dashboardQuickActions = [
+  { label: "Avatar baru", icon: Plus, path: "/admin/avatars/new" },
+  { label: "Kategori", icon: Tags, path: "/admin/categories" },
+  { label: "Pesanan", icon: PackageOpen, path: "/admin/orders" },
+  { label: "Pengaturan", icon: Settings2, path: "/admin/settings" },
+];
+
 export function DashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     api
@@ -156,98 +177,143 @@ export function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const statItems = [
+    {
+      label: "Total Avatar",
+      value: stats?.counts?.total_avatars ?? 0,
+      note: "Aktif di katalog",
+      icon: Layers3,
+      path: "/admin/avatars",
+    },
+    {
+      label: "Total Kategori",
+      value: stats?.counts?.total_categories ?? 0,
+      note: "Dinamis & terkelola",
+      icon: Tags,
+      path: "/admin/categories",
+    },
+    {
+      label: "Pesanan Baru",
+      value: stats?.counts?.pending_orders ?? 0,
+      note: "Menunggu konfirmasi",
+      icon: PackageOpen,
+      path: "/admin/orders",
+      accent: true,
+    },
+    {
+      label: "Views Katalog",
+      value: stats?.counts?.total_views ?? 0,
+      note: "Tayangan avatar",
+      icon: TrendingUp,
+      path: "/admin/avatars",
+    },
+  ];
+
+  const firstName = user?.name?.split(" ")[0] || "Admin";
+  const pendingOrders = stats?.counts?.pending_orders ?? 0;
+
   return (
     <AdminLayout
       title="Dashboard Overview"
       subtitle="Ringkasan performa katalog dan pesanan aktif AVA Studio."
     >
+      <section className="admin-intro">
+        <div className="admin-intro-copy">
+          <h2>Halo, {firstName}</h2>
+          <p>
+            {loading
+              ? "Memuat ringkasan katalog..."
+              : pendingOrders > 0
+                ? `Ada ${pendingOrders} pesanan baru yang menunggu konfirmasi.`
+                : "Semua pesanan sudah tertangani. Katalog siap dikelola."}
+          </p>
+        </div>
+        <div className="admin-intro-actions">
+          <Link to="/admin/avatars/new" className="btn btn-primary">
+            <Plus size={16} /> Tambah avatar
+          </Link>
+          <Link to="/admin/orders" className="btn btn-outline">
+            <Inbox size={16} /> Lihat pesanan
+          </Link>
+        </div>
+      </section>
+
       {/* METRIC CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Total Avatar</span>
-            <Layers3 className="text-pink-500" size={20} />
-          </div>
-          <b className="stat-value">{loading ? "..." : stats?.counts?.total_avatars || 0}</b>
-          <span className="text-xs text-muted-foreground">Aktif di katalog</span>
-        </div>
-
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Total Kategori</span>
-            <Sparkles className="text-pink-500" size={20} />
-          </div>
-          <b className="stat-value">{loading ? "..." : stats?.counts?.total_categories || 0}</b>
-          <span className="text-xs text-muted-foreground">Dinamis & terkelola</span>
-        </div>
-
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Pesanan Baru</span>
-            <PackageOpen className="text-pink-500" size={20} />
-          </div>
-          <b className="stat-value text-pink-600">
-            {loading ? "..." : stats?.counts?.pending_orders || 0}
-          </b>
-          <span className="text-xs text-muted-foreground">Menunggu konfirmasi</span>
-        </div>
-
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <span className="stat-label">Total Views Katalog</span>
-            <TrendingUp className="text-pink-500" size={20} />
-          </div>
-          <b className="stat-value">{loading ? "..." : stats?.counts?.total_views || 0}</b>
-          <span className="text-xs text-muted-foreground">Tayangan avatar</span>
-        </div>
+      <div className="stat-grid">
+        {statItems.map(({ label, value, note, icon: Icon, path, accent }) => (
+          <Link key={label} to={path} className={`stat-card ${accent ? "is-accent" : ""}`}>
+            <span className="stat-icon">
+              <Icon size={18} />
+            </span>
+            <div className="stat-body">
+              <span className="stat-label">{label}</span>
+              <b className="stat-value">{loading ? "..." : value}</b>
+              <span className="stat-note">{note}</span>
+            </div>
+          </Link>
+        ))}
       </div>
 
-      {/* RECENT ORDERS & TOP AVATARS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-pink-100 p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg">Pesanan Terbaru</h3>
-            <Link to="/admin/orders" className="text-xs text-pink-600 font-semibold hover:underline">
-              Lihat semua pesanan ➔
+      {/* RECENT ORDERS & SIDE PANELS */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="admin-panel lg:col-span-2">
+          <div className="panel-head">
+            <div>
+              <h3>Pesanan Terbaru</h3>
+              <p>Pantau pesanan yang baru masuk dari website.</p>
+            </div>
+            <Link to="/admin/orders" className="panel-link inline-flex items-center gap-1">
+              Lihat semua <ArrowUpRight size={13} />
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+          <div className="table-wrap">
+            <table className="admin-table">
               <thead>
-                <tr className="border-b border-pink-100 text-xs text-muted-foreground">
-                  <th className="pb-3">No. Order</th>
-                  <th className="pb-3">Pelanggan</th>
-                  <th className="pb-3">Paket/Avatar</th>
-                  <th className="pb-3">Status</th>
-                  <th className="pb-3">Tanggal</th>
+                <tr>
+                  <th>No. Order</th>
+                  <th>Pelanggan</th>
+                  <th>Paket / Avatar</th>
+                  <th>Status</th>
+                  <th>Tanggal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-pink-50">
-                {stats?.recent_orders?.map((ord: Order) => (
-                  <tr key={ord.id} className="hover:bg-pink-50/50">
-                    <td className="py-3 font-mono font-medium text-pink-800">{ord.order_number}</td>
-                    <td className="py-3">
-                      <b>{ord.customer_name}</b>
-                      <small className="block text-xs text-muted-foreground">
-                        @{ord.roblox_username}
-                      </small>
-                    </td>
-                    <td className="py-3">
-                      {ord.avatar?.name || ord.requested_style || "-"}
-                    </td>
-                    <td className="py-3">
-                      <StatusPill status={ord.status} />
-                    </td>
-                    <td className="py-3 text-xs text-muted-foreground">
-                      {new Date(ord.created_at).toLocaleDateString("id-ID")}
-                    </td>
-                  </tr>
-                ))}
-                {(!stats?.recent_orders || stats?.recent_orders.length === 0) && (
+              <tbody>
+                {loading &&
+                  [0, 1, 2].map((row) => (
+                    <tr key={row}>
+                      <td colSpan={5}>
+                        <div className="skeleton h-9 w-full" />
+                      </td>
+                    </tr>
+                  ))}
+                {!loading &&
+                  stats?.recent_orders?.map((ord: Order) => (
+                    <tr key={ord.id}>
+                      <td className="font-mono text-xs font-bold text-brand-700">
+                        {ord.order_number}
+                      </td>
+                      <td>
+                        <b className="block text-xs font-bold text-ink">{ord.customer_name}</b>
+                        <small className="text-2xs text-muted">@{ord.roblox_username}</small>
+                      </td>
+                      <td className="text-xs text-ink-soft">
+                        {ord.avatar?.name || ord.requested_style || "-"}
+                      </td>
+                      <td>
+                        <StatusPill status={ord.status} />
+                      </td>
+                      <td className="text-2xs text-muted">
+                        {new Date(ord.created_at).toLocaleDateString("id-ID")}
+                      </td>
+                    </tr>
+                  ))}
+                {!loading && (!stats?.recent_orders || stats.recent_orders.length === 0) && (
                   <tr>
-                    <td colSpan={5} className="py-6 text-center text-muted-foreground">
-                      Belum ada pesanan terbaru.
+                    <td colSpan={5}>
+                      <div className="py-8 text-center text-xs text-muted">
+                        Belum ada pesanan terbaru.
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -256,23 +322,59 @@ export function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-pink-100 p-5 shadow-sm">
-          <h3 className="font-bold text-lg mb-4">Top Avatar Terpopuler</h3>
-          <div className="space-y-4">
-            {stats?.top_avatars?.map((ava: Avatar) => (
-              <div key={ava.id} className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-pink-100">
-                  <AvatarArt imageSrc={ava.cover_image} name={ava.name} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <b className="block text-sm truncate">{ava.name}</b>
-                  <span className="text-xs text-pink-600 font-semibold">{rupiah(ava.starting_price)}</span>
-                </div>
-                <div className="text-right text-xs text-muted-foreground">
-                  <span className="font-bold text-pink-900">{ava.views_count}</span> views
-                </div>
+        <div className="space-y-5">
+          <div className="admin-panel">
+            <div className="panel-head">
+              <div>
+                <h3>Top Avatar</h3>
+                <p>Paling sering dilihat pengunjung.</p>
               </div>
-            ))}
+              <Link to="/admin/avatars" className="row-action" aria-label="Kelola avatar">
+                <PanelsTopLeft size={15} />
+              </Link>
+            </div>
+            <div className="top-list">
+              {stats?.top_avatars?.map((ava: Avatar, index: number) => (
+                <div key={ava.id} className="top-row">
+                  <span className={`rank-badge ${index < 3 ? "is-top" : ""}`}>{index + 1}</span>
+                  <div className="table-thumb">
+                    <AvatarArt imageSrc={ava.cover_image} name={ava.name} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <b className="block truncate text-xs font-bold text-ink">{ava.name}</b>
+                    <span className="text-2xs font-semibold text-brand-700">
+                      {rupiah(ava.starting_price)}
+                    </span>
+                  </div>
+                  <div className="top-metric">
+                    <b>{ava.views_count}</b>
+                    <span>views</span>
+                  </div>
+                </div>
+              ))}
+              {(!stats?.top_avatars || stats.top_avatars.length === 0) && (
+                <p className="py-4 text-center text-xs text-muted">Belum ada data avatar.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="admin-panel">
+            <div className="panel-head">
+              <div>
+                <h3>Aksi Cepat</h3>
+                <p>Shortcut pekerjaan harian.</p>
+              </div>
+            </div>
+            <div className="quick-grid">
+              {dashboardQuickActions.map(({ label, icon: Icon, path }) => (
+                <Link key={label} to={path} className="quick-tile">
+                  <span className="quick-icon">
+                    <Icon size={15} />
+                  </span>
+                  {label}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -291,7 +393,9 @@ export function AvatarsAdminPage() {
   const fetchAvatars = async () => {
     setLoading(true);
     try {
-      const res = await api.get<{ success: boolean; data: Avatar[] }>("/admin/avatars?all_status=1&per_page=100");
+      const res = await api.get<{ success: boolean; data: Avatar[] }>(
+        "/admin/avatars?all_status=1&per_page=100",
+      );
       if (res.data.success) {
         setAvatars(res.data.data);
       }
@@ -316,9 +420,10 @@ export function AvatarsAdminPage() {
   };
 
   const filtered = useMemo(() => {
-    return avatars.filter((a) =>
-      a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.description.toLowerCase().includes(search.toLowerCase())
+    return avatars.filter(
+      (a) =>
+        a.name.toLowerCase().includes(search.toLowerCase()) ||
+        a.description.toLowerCase().includes(search.toLowerCase()),
     );
   }, [avatars, search]);
 
@@ -327,81 +432,133 @@ export function AvatarsAdminPage() {
       title="Manajemen Avatar"
       subtitle="Kelola katalog avatar Roblox, foto cover, galeri, dan harga mulai."
     >
-      <PageToolbar search={search} onSearch={setSearch}>
+      <PageToolbar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Cari nama atau deskripsi avatar..."
+      >
         <Link to="/admin/avatars/new" className="btn btn-primary">
           <Plus size={17} /> Tambah Avatar
         </Link>
       </PageToolbar>
 
-      <div className="bg-white rounded-2xl border border-pink-100 overflow-hidden shadow-sm mt-5">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-pink-50/50 border-b border-pink-100 text-xs text-muted-foreground">
-              <th className="p-4">Avatar</th>
-              <th className="p-4">Kategori</th>
-              <th className="p-4">Harga Mulai</th>
-              <th className="p-4">Badge</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-pink-50">
-            {filtered.map((ava) => (
-              <tr key={ava.id} className="hover:bg-pink-50/30">
-                <td className="p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-pink-100">
-                      <AvatarArt imageSrc={ava.cover_image} name={ava.name} />
-                    </div>
-                    <div>
-                      <b className="block text-sm">{ava.name}</b>
-                      <small className="text-xs text-muted-foreground line-clamp-1 max-w-xs">
-                        {ava.description}
-                      </small>
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div className="flex flex-wrap gap-1">
-                    {ava.categories?.map((c) => (
-                      <span key={c.id} className="text-[11px] bg-pink-100 text-pink-800 px-2 py-0.5 rounded-full font-medium">
-                        {c.name}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td className="p-4 font-semibold text-pink-700">{rupiah(ava.starting_price)}</td>
-                <td className="p-4">{ava.badge ? <span className="badge">{ava.badge}</span> : "-"}</td>
-                <td className="p-4">
-                  <StatusPill status={ava.status} />
-                </td>
-                <td className="p-4 text-right space-x-2">
-                  <Link
-                    to={`/admin/avatars/${ava.id}/edit`}
-                    className="p-1.5 rounded-lg border border-pink-200 text-pink-700 hover:bg-pink-50 inline-flex items-center"
-                    title="Edit Avatar"
-                  >
-                    <Pencil size={15} />
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(ava.id, ava.name)}
-                    className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 inline-flex items-center"
-                    title="Hapus Avatar"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && !loading && (
+      <div className="table-shell">
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                  Tidak ada avatar ditemukan.
-                </td>
+                <th>Avatar</th>
+                <th>Kategori</th>
+                <th>Harga Mulai</th>
+                <th>Badge</th>
+                <th>Status</th>
+                <th className="text-right">Aksi</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading &&
+                [0, 1, 2, 3].map((row) => (
+                  <tr key={row}>
+                    <td colSpan={6}>
+                      <div className="skeleton h-12 w-full" />
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading &&
+                filtered.map((ava) => (
+                  <tr key={ava.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="table-thumb">
+                          <AvatarArt imageSrc={ava.cover_image} name={ava.name} />
+                        </div>
+                        <div className="min-w-0">
+                          <b className="block truncate text-xs font-bold text-ink">{ava.name}</b>
+                          <small className="line-clamp-1 max-w-xs text-2xs text-muted">
+                            {ava.description}
+                          </small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex flex-wrap gap-1">
+                        {ava.categories?.map((c) => (
+                          <span key={c.id} className="tag">
+                            {c.name}
+                          </span>
+                        ))}
+                        {(!ava.categories || ava.categories.length === 0) && (
+                          <span className="text-2xs text-faint">Tanpa kategori</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="text-xs font-bold text-brand-700">
+                      {rupiah(ava.starting_price)}
+                    </td>
+                    <td>
+                      {ava.badge ? (
+                        <span className="badge">{ava.badge}</span>
+                      ) : (
+                        <span className="text-2xs text-faint">-</span>
+                      )}
+                    </td>
+                    <td>
+                      <StatusPill status={ava.status} />
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <Link
+                          to={`/admin/avatars/${ava.id}/edit`}
+                          className="row-action"
+                          title="Edit Avatar"
+                          aria-label={`Edit ${ava.name}`}
+                        >
+                          <Pencil size={15} />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(ava.id, ava.name)}
+                          className="row-action is-danger"
+                          title="Hapus Avatar"
+                          aria-label={`Hapus ${ava.name}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="empty-state is-plain">
+                      <span className="empty-icon">
+                        <PanelsTopLeft size={20} />
+                      </span>
+                      <h3>Avatar tidak ditemukan</h3>
+                      <p>
+                        Coba kata kunci lain, atau tambahkan avatar baru untuk mulai mengisi
+                        katalog.
+                      </p>
+                      <Link to="/admin/avatars/new" className="btn btn-primary btn-sm">
+                        <Plus size={15} /> Tambah Avatar
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {!loading && filtered.length > 0 && (
+          <div className="pagination">
+            <span>
+              Menampilkan <b>{filtered.length}</b> dari <b>{avatars.length}</b> avatar
+            </span>
+            <span className="hidden sm:inline">Data diperbarui otomatis saat kamu mengedit.</span>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
@@ -423,7 +580,7 @@ export function AvatarFormPage() {
   const [existingImages, setExistingImages] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register, handleSubmit, reset, setValue } = useForm({
+  const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       name: "",
       description: "",
@@ -461,7 +618,7 @@ export function AvatarFormPage() {
 
   const handleCategoryToggle = (catId: number) => {
     setSelectedCategories((prev) =>
-      prev.includes(catId) ? prev.filter((i) => i !== catId) : [...prev, catId]
+      prev.includes(catId) ? prev.filter((i) => i !== catId) : [...prev, catId],
     );
   };
 
@@ -540,157 +697,236 @@ export function AvatarFormPage() {
       title={isEdit ? "Edit Avatar" : "Tambah Avatar Baru"}
       subtitle="Atur foto cover, galeri, nama, harga, dan multi-kategori avatar."
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="max-w-4xl bg-white rounded-2xl border border-pink-100 p-6 shadow-sm space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="font-semibold text-sm block mb-1">Nama Avatar *</label>
-              <input
-                {...register("name", { required: true })}
-                placeholder="Contoh: Strawberry Dream"
-                className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-sm block mb-1">Biaya Jasa Mulai (Rp) *</label>
-              <input
-                type="number"
-                {...register("starting_price", { required: true })}
-                placeholder="35000"
-                className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
-              />
-            </div>
-
-            <div>
-              <label className="font-semibold text-sm block mb-1">Badge Tampilan</label>
-              <input
-                {...register("badge")}
-                placeholder="Contoh: Paling disukai, Trending, New"
-                className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="form-layout">
+        <div className="space-y-6">
+          {/* DETAIL UTAMA */}
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">1</span>
               <div>
-                <label className="font-semibold text-sm block mb-1">Status Publikasi</label>
-                <select
-                  {...register("status")}
-                  className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                >
-                  <option value="published">Published</option>
-                  <option value="draft">Draft</option>
+                <h3>Detail avatar</h3>
+                <p>Informasi dasar yang tampil di kartu katalog dan halaman detail.</p>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div>
+                <label className="field-label">
+                  Nama Avatar <span className="text-brand-600">*</span>
+                </label>
+                <input
+                  {...register("name", { required: true })}
+                  placeholder="Contoh: Strawberry Dream"
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">
+                  Biaya Jasa Mulai (Rp) <span className="text-brand-600">*</span>
+                </label>
+                <input
+                  type="number"
+                  {...register("starting_price", { required: true })}
+                  placeholder="35000"
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Badge Tampilan</label>
+                <input
+                  {...register("badge")}
+                  placeholder="Contoh: Paling disukai, Trending, New"
+                  className="input"
+                />
+                <small className="field-hint">Kosongkan jika tidak perlu penanda khusus.</small>
+              </div>
+
+              <div>
+                <label className="field-label">Status Publikasi</label>
+                <select {...register("status")} className="select">
+                  <option value="published">Published — tampil di katalog</option>
+                  <option value="draft">Draft — simpan dulu</option>
                 </select>
               </div>
 
-              <div className="flex items-center pt-6">
-                <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold">
-                  <input type="checkbox" {...register("is_featured")} className="accent-pink-500 w-4 h-4" />
-                  Koleksi Unggulan (Hero)
+              <div className="span-2">
+                <label className="field-label">
+                  Deskripsi Lengkap <span className="text-brand-600">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  {...register("description", { required: true })}
+                  placeholder="Jelaskan detail look, palet warna, dan vibe avatar..."
+                  className="textarea"
+                />
+                <small className="field-hint">
+                  Tulis 2–3 kalimat yang menggambarkan karakter visual avatar ini.
+                </small>
+              </div>
+
+              <div className="span-2">
+                <label className="option-row">
+                  <input type="checkbox" {...register("is_featured")} />
+                  <span>
+                    <b className="block text-xs font-bold text-ink">
+                      Tampilkan di koleksi unggulan
+                    </b>
+                    <span className="text-2xs text-muted">
+                      Avatar unggulan muncul di section featured pada landing page.
+                    </span>
+                  </span>
                 </label>
               </div>
             </div>
-
-            <div>
-              <label className="font-semibold text-sm block mb-1">Deskripsi Lengkap *</label>
-              <textarea
-                rows={4}
-                {...register("description", { required: true })}
-                placeholder="Jelaskan detail look, palet warna, dan vibe avatar..."
-                className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300"
-              />
-            </div>
           </div>
 
-          {/* RIGHT COLUMN: COVER & GALLERY */}
-          <div className="space-y-4">
-            <div>
-              <label className="font-semibold text-sm block mb-1">Foto Cover Avatar</label>
-              <div className="border-2 border-dashed border-pink-200 rounded-2xl p-4 text-center hover:bg-pink-50/50 transition relative">
-                {coverPreview ? (
-                  <div className="relative w-full h-48 rounded-xl overflow-hidden mb-2">
-                    <img src={coverPreview} alt="Cover Preview" className="w-full h-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="py-6">
-                    <UploadCloud size={32} className="text-pink-400 mx-auto mb-2" />
-                    <p className="text-xs text-muted-foreground">Upload file gambar (PNG, JPG, WebP max 5MB)</p>
-                  </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleCoverChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
+          {/* KATEGORI */}
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">2</span>
+              <div>
+                <h3>Kategori avatar</h3>
+                <p>Satu avatar dapat masuk ke beberapa kategori sekaligus.</p>
               </div>
             </div>
 
-            {/* GALLERY UPLOAD */}
-            <div>
-              <label className="font-semibold text-sm block mb-1">Galeri Foto Tambahan</label>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleGalleryChange}
-                className="w-full text-xs text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-100 file:text-pink-700 hover:file:bg-pink-200 cursor-pointer"
-              />
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => {
+                const isSelected = selectedCategories.includes(cat.id);
+                return (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => handleCategoryToggle(cat.id)}
+                    aria-pressed={isSelected}
+                    className={`chip ${isSelected ? "is-active" : ""}`}
+                  >
+                    {isSelected ? <Check size={13} /> : <Plus size={13} />}
+                    {cat.name}
+                  </button>
+                );
+              })}
+              {categories.length === 0 && (
+                <p className="text-xs text-muted">
+                  Belum ada kategori. Tambahkan kategori terlebih dahulu.
+                </p>
+              )}
+            </div>
+            <p className="mt-3 text-2xs text-faint">{selectedCategories.length} kategori dipilih</p>
+          </div>
 
-              {/* EXISTING GALLERY IMAGES */}
+          <div className="form-actions">
+            <Link to="/admin/avatars" className="btn btn-outline">
+              Batal
+            </Link>
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+              <Save size={16} />
+              {isSubmitting ? "Menyimpan..." : isEdit ? "Perbarui Avatar" : "Simpan Avatar"}
+            </button>
+          </div>
+        </div>
+
+        {/* MEDIA SIDEBAR */}
+        <aside className="sticky-col">
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">3</span>
+              <div>
+                <h3>Foto cover</h3>
+                <p>Gunakan rasio 4:5 agar kartu katalog terlihat rapi.</p>
+              </div>
+            </div>
+
+            <label className="media-drop">
+              {coverPreview ? (
+                <div className="media-preview">
+                  <img src={coverPreview} alt="Cover Preview" />
+                </div>
+              ) : (
+                <>
+                  <span className="empty-icon">
+                    <UploadCloud size={20} />
+                  </span>
+                  <b className="text-xs font-bold text-ink">Unggah foto cover</b>
+                  <span className="text-2xs text-muted">PNG, JPG, WebP · maks 5MB</span>
+                </>
+              )}
+              <input type="file" accept="image/*" onChange={handleCoverChange} />
+            </label>
+            {coverPreview && (
+              <p className="mt-2 text-center text-2xs text-faint">
+                Klik gambar untuk mengganti cover.
+              </p>
+            )}
+          </div>
+
+          <div className="form-card">
+            <div className="flex items-center justify-between gap-3 border-b border-line pb-3">
+              <h3 className="flex items-center gap-2 text-sm font-extrabold text-ink">
+                <ImagePlus size={15} className="text-brand-600" /> Galeri foto
+              </h3>
               {existingImages.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
+                <span className="badge">{existingImages.length} tersimpan</span>
+              )}
+            </div>
+
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleGalleryChange}
+              className="file-input mt-4"
+            />
+            <p className="mt-2 text-2xs text-faint">
+              Bisa pilih beberapa foto sekaligus untuk melengkapi portofolio.
+            </p>
+
+            {galleryFiles.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {galleryFiles.map((file, index) => (
+                  <div
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-line bg-brand-25 px-3 py-2"
+                  >
+                    <span className="truncate text-2xs text-muted">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setGalleryFiles((prev) => prev.filter((_, i) => i !== index))}
+                      className="text-faint transition-colors hover:text-red-500"
+                      aria-label={`Hapus ${file.name} dari unggahan`}
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {existingImages.length > 0 && (
+              <>
+                <span className="mt-4 block text-2xs font-extrabold uppercase tracking-[0.12em] text-faint">
+                  Foto tersimpan
+                </span>
+                <div className="gallery-grid mt-2">
                   {existingImages.map((img) => (
-                    <div key={img.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-pink-200 group">
-                      <img src={getImageUrl(img.image_path) || ""} alt="" className="w-full h-full object-cover" />
+                    <div key={img.id} className="gallery-thumb">
+                      <img src={getImageUrl(img.image_path) || ""} alt="" />
                       <button
                         type="button"
                         onClick={() => handleDeleteExistingImage(img.id)}
-                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                        aria-label="Hapus foto galeri"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
-        </div>
-
-        {/* MULTIPLE CATEGORIES SELECTION */}
-        <div className="border-t border-pink-100 pt-5">
-          <label className="font-semibold text-sm block mb-2">Pilih Kategori (Satu avatar dapat memilih beberapa kategori)</label>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => {
-              const isSelected = selectedCategories.includes(cat.id);
-              return (
-                <button
-                  type="button"
-                  key={cat.id}
-                  onClick={() => handleCategoryToggle(cat.id)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
-                    isSelected
-                      ? "bg-pink-500 text-white border-pink-500 shadow-sm"
-                      : "bg-white text-pink-900 border-pink-200 hover:bg-pink-50"
-                  }`}
-                >
-                  {isSelected ? `✓ ${cat.name}` : `+ ${cat.name}`}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-pink-100">
-          <Link to="/admin/avatars" className="btn btn-outline">
-            Batal
-          </Link>
-          <button type="submit" disabled={isSubmitting} className="btn btn-primary">
-            {isSubmitting ? "Menyimpan..." : isEdit ? "Perbarui Avatar" : "Simpan Avatar"}
-          </button>
-        </div>
+        </aside>
       </form>
     </AdminLayout>
   );
@@ -793,117 +1029,224 @@ export function CategoriesAdminPage() {
       title="Manajemen Kategori"
       subtitle="Admin bebas menambah, mengubah, atau menghapus kategori avatar secara dinamis."
     >
-      <div className="flex justify-between items-center mb-6">
-        <p className="text-sm text-pink-900/70">
+      <div className="page-toolbar">
+        <p className="max-w-lg text-xs leading-relaxed text-muted">
           Kategori yang dibuat di sini akan langsung tampil pada filter katalog public website.
         </p>
-        <button onClick={openAddModal} className="btn btn-primary">
-          <Plus size={17} /> Tambah Kategori
-        </button>
+        <div className="toolbar-actions">
+          <button onClick={openAddModal} className="btn btn-primary">
+            <Plus size={17} /> Tambah Kategori
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-pink-100 overflow-hidden shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-pink-50/50 border-b border-pink-100 text-xs text-muted-foreground">
-              <th className="p-4">Kategori</th>
-              <th className="p-4">Slug URL</th>
-              <th className="p-4">Deskripsi</th>
-              <th className="p-4">Total Avatar</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-pink-50">
-            {categories.map((cat) => (
-              <tr key={cat.id} className="hover:bg-pink-50/30">
-                <td className="p-4 font-semibold text-pink-900">{cat.name}</td>
-                <td className="p-4 font-mono text-xs text-muted-foreground">{cat.slug}</td>
-                <td className="p-4 text-xs text-muted-foreground max-w-sm line-clamp-1">{cat.description || "-"}</td>
-                <td className="p-4 font-bold text-pink-600">{cat.avatars_count || 0}</td>
-                <td className="p-4">
-                  <span className={`status-pill ${cat.is_active ? "status-completed" : "status-draft"}`}>
-                    {cat.is_active ? "Aktif" : "Non-aktif"}
-                  </span>
-                </td>
-                <td className="p-4 text-right space-x-2">
-                  <button
-                    onClick={() => openEditModal(cat)}
-                    className="p-1.5 rounded-lg border border-pink-200 text-pink-700 hover:bg-pink-50 inline-flex items-center"
-                    title="Edit Kategori"
-                  >
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(cat.id, cat.name)}
-                    className="p-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 inline-flex items-center"
-                    title="Hapus Kategori"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </td>
+      <div className="table-shell">
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Kategori</th>
+                <th>Slug URL</th>
+                <th>Deskripsi</th>
+                <th>Total Avatar</th>
+                <th>Status</th>
+                <th className="text-right">Aksi</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading &&
+                [0, 1, 2].map((row) => (
+                  <tr key={row}>
+                    <td colSpan={6}>
+                      <div className="skeleton h-11 w-full" />
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading &&
+                categories.map((cat) => (
+                  <tr key={cat.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="table-thumb">
+                          {cat.thumbnail ? (
+                            <img
+                              src={getImageUrl(cat.thumbnail) || ""}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="grid h-full w-full place-items-center text-brand-600">
+                              <Tags size={16} />
+                            </span>
+                          )}
+                        </div>
+                        <b className="text-xs font-bold text-ink">{cat.name}</b>
+                      </div>
+                    </td>
+                    <td className="font-mono text-2xs text-muted">{cat.slug}</td>
+                    <td className="max-w-sm text-2xs text-muted">
+                      <span className="line-clamp-1">{cat.description || "-"}</span>
+                    </td>
+                    <td>
+                      <span className="inline-flex min-w-8 items-center justify-center rounded-full border border-brand-100 bg-brand-50 px-2 py-1 text-2xs font-bold text-brand-700">
+                        {cat.avatars_count || 0}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        className={`status-pill ${cat.is_active ? "status-active" : "status-draft"}`}
+                      >
+                        {cat.is_active ? "Aktif" : "Non-aktif"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button
+                          onClick={() => openEditModal(cat)}
+                          className="row-action"
+                          title="Edit Kategori"
+                          aria-label={`Edit ${cat.name}`}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(cat.id, cat.name)}
+                          className="row-action is-danger"
+                          title="Hapus Kategori"
+                          aria-label={`Hapus ${cat.name}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading && categories.length === 0 && (
+                <tr>
+                  <td colSpan={6}>
+                    <div className="empty-state is-plain">
+                      <span className="empty-icon">
+                        <Tags size={20} />
+                      </span>
+                      <h3>Belum ada kategori</h3>
+                      <p>Tambahkan kategori pertama agar katalog lebih mudah dijelajahi.</p>
+                      <button onClick={openAddModal} className="btn btn-primary btn-sm">
+                        <Plus size={15} /> Tambah Kategori
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative animate-in fade-in">
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-black"
-            >
-              <X size={18} />
-            </button>
-            <h3 className="font-bold text-lg mb-4">
-              {editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="modal-backdrop">
+          <div className="modal" role="dialog" aria-modal="true" aria-label="Form kategori">
+            <div className="modal-head">
               <div>
-                <label className="font-semibold text-xs block mb-1">Nama Kategori *</label>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Contoh: AVA Y2K, AVA Sultan"
-                  className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm"
-                  required
-                />
+                <h3>{editingCategory ? "Edit Kategori" : "Tambah Kategori Baru"}</h3>
+                <p className="mt-1 text-xs text-muted">
+                  Nama akan otomatis menjadi slug URL katalog.
+                </p>
               </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="icon-button"
+                aria-label="Tutup modal"
+              >
+                <X size={17} />
+              </button>
+            </div>
 
-              <div>
-                <label className="font-semibold text-xs block mb-1">Deskripsi Kategori</label>
-                <textarea
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Keterangan singkat gaya kategori..."
-                  className="w-full px-3 py-2 rounded-xl border border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-300 text-sm"
-                />
-              </div>
+            <form onSubmit={handleSubmit}>
+              <div className="modal-body space-y-4">
+                <div>
+                  <label className="field-label">
+                    Nama Kategori <span className="text-brand-600">*</span>
+                  </label>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Contoh: AVA Y2K, AVA Sultan"
+                    className="input"
+                    required
+                  />
+                </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="cat-active"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                  className="accent-pink-500 w-4 h-4"
-                />
-                <label htmlFor="cat-active" className="text-sm font-semibold cursor-pointer">
-                  Kategori Aktif & Ditampilkan
+                <div>
+                  <label className="field-label">Deskripsi Kategori</label>
+                  <textarea
+                    rows={3}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Keterangan singkat gaya kategori..."
+                    className="textarea"
+                  />
+                </div>
+
+                <div>
+                  <label className="field-label">Thumbnail Kategori</label>
+                  <div className="flex items-center gap-3">
+                    <div className="table-thumb">
+                      {editingCategory?.thumbnail ? (
+                        <img
+                          src={getImageUrl(editingCategory.thumbnail) || ""}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="grid h-full w-full place-items-center text-brand-600">
+                          <ImagePlus size={16} />
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                        className="file-input"
+                      />
+                      <small className="mt-1 block text-2xs text-faint">
+                        {thumbnailFile
+                          ? `File dipilih: ${thumbnailFile.name}`
+                          : "Biarkan kosong jika tidak ingin mengganti."}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+
+                <label className="option-row">
+                  <input
+                    type="checkbox"
+                    id="cat-active"
+                    checked={isActive}
+                    onChange={(e) => setIsActive(e.target.checked)}
+                  />
+                  <span>
+                    <b className="block text-xs font-bold text-ink">Kategori aktif & ditampilkan</b>
+                    <span className="text-2xs text-muted">
+                      Kategori non-aktif tetap tersimpan namun disembunyikan dari katalog.
+                    </span>
+                  </span>
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-pink-100">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-outline text-xs">
+              <div className="modal-foot">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="btn btn-outline"
+                >
                   Batal
                 </button>
-                <button type="submit" disabled={isSubmitting} className="btn btn-primary text-xs">
-                  {isSubmitting ? "Menyimpan..." : "Simpan Kategori"}
+                <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+                  <Save size={15} /> {isSubmitting ? "Menyimpan..." : "Simpan Kategori"}
                 </button>
               </div>
             </form>
@@ -917,6 +1260,16 @@ export function CategoriesAdminPage() {
 // ==========================================
 // 6. ORDERS ADMIN PAGE
 // ==========================================
+const orderStatusOptions = [
+  { value: "all", label: "Semua" },
+  { value: "pending", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
+  { value: "in_progress", label: "In progress" },
+  { value: "revision", label: "Revision" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
 export function OrdersAdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -959,7 +1312,7 @@ export function OrdersAdminPage() {
         {
           status: newStatus,
           admin_notes: adminNotes,
-        }
+        },
       );
       if (res.data.success) {
         toast.success("Status pesanan diperbarui!");
@@ -978,164 +1331,216 @@ export function OrdersAdminPage() {
       title="Manajemen Pesanan"
       subtitle="Pantau dan kelola seluruh pesanan pelanggan yang masuk dari website."
     >
-      <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
-        {["all", "pending", "confirmed", "in_progress", "revision", "completed", "cancelled"].map((st) => (
-          <button
-            key={st}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider transition ${
-              statusFilter === st
-                ? "bg-pink-500 text-white shadow-sm"
-                : "bg-white text-pink-900 border border-pink-200 hover:bg-pink-50"
-            }`}
-            onClick={() => setStatusFilter(st)}
-          >
-            {st}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-white rounded-2xl border border-pink-100 overflow-hidden shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="bg-pink-50/50 border-b border-pink-100 text-xs text-muted-foreground">
-              <th className="p-4">No. Order</th>
-              <th className="p-4">Pelanggan</th>
-              <th className="p-4">WhatsApp</th>
-              <th className="p-4">Style / Referensi</th>
-              <th className="p-4">Budget</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-pink-50">
-            {orders.map((ord) => (
-              <tr key={ord.id} className="hover:bg-pink-50/30">
-                <td className="p-4 font-mono font-bold text-pink-800">{ord.order_number}</td>
-                <td className="p-4">
-                  <b>{ord.customer_name}</b>
-                  <small className="block text-xs text-muted-foreground">@{ord.roblox_username}</small>
-                </td>
-                <td className="p-4">
-                  <a
-                    href={`https://wa.me/${ord.whatsapp.replace(/[^0-9]/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-pink-600 font-semibold hover:underline"
-                  >
-                    {ord.whatsapp}
-                  </a>
-                </td>
-                <td className="p-4 text-xs">
-                  {ord.avatar?.name || ord.requested_style || "-"}
-                </td>
-                <td className="p-4 font-semibold text-pink-700">{rupiah(ord.budget)}</td>
-                <td className="p-4">
-                  <StatusPill status={ord.status} />
-                </td>
-                <td className="p-4 text-right">
-                  <button onClick={() => openDetail(ord)} className="btn btn-outline text-xs">
-                    Kelola
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {orders.length === 0 && !loading && (
-              <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                  Tidak ada pesanan dengan status ini.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* DETAIL MODAL */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl relative animate-in fade-in max-h-[90vh] overflow-y-auto">
+      <div className="page-toolbar">
+        <div className="filter-row">
+          {orderStatusOptions.map(({ value, label }) => (
             <button
-              onClick={() => setSelectedOrder(null)}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-black"
+              key={value}
+              className={`chip chip-sm ${statusFilter === value ? "is-active" : ""}`}
+              onClick={() => setStatusFilter(value)}
             >
-              <X size={18} />
+              {label}
             </button>
-            <h3 className="font-bold text-lg mb-1">Rincian Pesanan</h3>
-            <span className="font-mono text-xs text-pink-700 font-bold block mb-4">
-              {selectedOrder.order_number}
-            </span>
+          ))}
+        </div>
+        <span className="text-2xs text-muted">
+          {loading ? "Memuat pesanan..." : `${orders.length} pesanan ditampilkan`}
+        </span>
+      </div>
 
-            <div className="space-y-3 text-sm bg-pink-50/50 p-4 rounded-xl mb-4">
+      <div className="table-shell">
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>No. Order</th>
+                <th>Pelanggan</th>
+                <th>WhatsApp</th>
+                <th>Style / Referensi</th>
+                <th>Budget</th>
+                <th>Status</th>
+                <th className="text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading &&
+                [0, 1, 2, 3].map((row) => (
+                  <tr key={row}>
+                    <td colSpan={7}>
+                      <div className="skeleton h-11 w-full" />
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading &&
+                orders.map((ord) => (
+                  <tr key={ord.id}>
+                    <td className="font-mono text-2xs font-bold text-brand-700">
+                      {ord.order_number}
+                    </td>
+                    <td>
+                      <b className="block text-xs font-bold text-ink">{ord.customer_name}</b>
+                      <small className="text-2xs text-muted">@{ord.roblox_username}</small>
+                    </td>
+                    <td>
+                      <a
+                        href={`https://wa.me/${ord.whatsapp.replace(/[^0-9]/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-2xs font-bold text-brand-700 hover:underline"
+                      >
+                        <MessageCircle size={13} /> {ord.whatsapp}
+                      </a>
+                    </td>
+                    <td className="text-2xs text-ink-soft">
+                      {ord.avatar?.name || ord.requested_style || "-"}
+                    </td>
+                    <td className="text-xs font-bold text-ink-soft">{rupiah(ord.budget)}</td>
+                    <td>
+                      <StatusPill status={ord.status} />
+                    </td>
+                    <td>
+                      <div className="row-actions">
+                        <button onClick={() => openDetail(ord)} className="btn btn-outline btn-sm">
+                          Kelola
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+              {!loading && orders.length === 0 && (
+                <tr>
+                  <td colSpan={7}>
+                    <div className="empty-state is-plain">
+                      <span className="empty-icon">
+                        <Inbox size={20} />
+                      </span>
+                      <h3>Belum ada pesanan</h3>
+                      <p>Tidak ada pesanan dengan status ini. Coba pilih filter lain.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {selectedOrder && (
+        <div className="modal-backdrop">
+          <div
+            className="modal modal-lg"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detail pesanan"
+          >
+            <div className="modal-head">
               <div>
-                <span className="text-xs text-muted-foreground block">Pelanggan & Username Roblox</span>
-                <b>{selectedOrder.customer_name}</b> (@{selectedOrder.roblox_username})
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground block">Nomor WhatsApp</span>
-                <b>{selectedOrder.whatsapp}</b>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground block">Style / Referensi</span>
-                <b>{selectedOrder.avatar?.name || selectedOrder.requested_style || "-"}</b>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground block">Catatan Pesanan Pelanggan</span>
-                <p className="text-xs bg-white p-2.5 rounded-lg border border-pink-100 mt-1">
-                  {selectedOrder.request_notes || "Tidak ada catatan tambahan."}
+                <h3>Rincian Pesanan</h3>
+                <p className="mt-1 font-mono text-2xs font-bold text-brand-700">
+                  {selectedOrder.order_number}
                 </p>
               </div>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="icon-button"
+                aria-label="Tutup detail pesanan"
+              >
+                <X size={17} />
+              </button>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold block mb-1">Ubah Status Pesanan</label>
-                <select
-                  value={newStatus}
-                  onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="revision">Revision</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+            <div className="modal-body space-y-4">
+              <div className="grid grid-cols-1 gap-3 rounded-xl border border-line bg-brand-25 p-4 text-xs sm:grid-cols-2">
+                <div>
+                  <span className="block text-2xs font-bold uppercase tracking-[0.08em] text-faint">
+                    Pelanggan
+                  </span>
+                  <b className="text-ink">{selectedOrder.customer_name}</b>
+                  <span className="block text-2xs text-muted">
+                    @{selectedOrder.roblox_username}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-2xs font-bold uppercase tracking-[0.08em] text-faint">
+                    WhatsApp
+                  </span>
+                  <b className="text-ink">{selectedOrder.whatsapp}</b>
+                </div>
+                <div>
+                  <span className="block text-2xs font-bold uppercase tracking-[0.08em] text-faint">
+                    Style / Referensi
+                  </span>
+                  <b className="text-ink">
+                    {selectedOrder.avatar?.name || selectedOrder.requested_style || "-"}
+                  </b>
+                </div>
+                <div>
+                  <span className="block text-2xs font-bold uppercase tracking-[0.08em] text-faint">
+                    Budget
+                  </span>
+                  <b className="text-ink">{rupiah(selectedOrder.budget)}</b>
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="block text-2xs font-bold uppercase tracking-[0.08em] text-faint">
+                    Catatan Pesanan Pelanggan
+                  </span>
+                  <p className="mt-1 rounded-xl border border-line bg-white p-3 text-2xs leading-relaxed text-ink-soft">
+                    {selectedOrder.request_notes || "Tidak ada catatan tambahan."}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold block mb-1">Catatan Internal Admin</label>
-                <textarea
-                  rows={3}
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Catatan pengerjaan atau riwayat revisi..."
-                  className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-                />
+              <div className="form-grid">
+                <div>
+                  <label className="field-label">Ubah Status Pesanan</label>
+                  <select
+                    value={newStatus}
+                    onChange={(e) => setNewStatus(e.target.value)}
+                    className="select"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="revision">Revision</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+
+                <div className="span-2">
+                  <label className="field-label">Catatan Internal Admin</label>
+                  <textarea
+                    rows={3}
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    placeholder="Catatan pengerjaan atau riwayat revisi..."
+                    className="textarea"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 mt-4 border-t border-pink-100">
+            <div className="modal-foot">
               <a
                 href={`https://wa.me/${selectedOrder.whatsapp.replace(/[^0-9]/g, "")}`}
                 target="_blank"
                 rel="noreferrer"
-                className="btn btn-outline text-xs text-pink-700"
+                className="btn btn-outline btn-sm mr-auto"
               >
-                Chat WhatsApp
+                <MessageCircle size={14} /> Chat WhatsApp
               </a>
-              <div className="flex gap-2">
-                <button onClick={() => setSelectedOrder(null)} className="btn btn-outline text-xs">
-                  Tutup
-                </button>
-                <button
-                  onClick={handleUpdateStatus}
-                  disabled={isUpdating}
-                  className="btn btn-primary text-xs"
-                >
-                  {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
-                </button>
-              </div>
+              <button onClick={() => setSelectedOrder(null)} className="btn btn-outline">
+                Tutup
+              </button>
+              <button
+                onClick={handleUpdateStatus}
+                disabled={isUpdating}
+                className="btn btn-primary"
+              >
+                <Save size={15} /> {isUpdating ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
             </div>
           </div>
         </div>
@@ -1154,7 +1559,9 @@ export function TestimonialsAdminPage() {
   const fetchTestimonials = async () => {
     setLoading(true);
     try {
-      const res = await api.get<{ success: boolean; data: Testimonial[] }>("/admin/testimonials?all=1");
+      const res = await api.get<{ success: boolean; data: Testimonial[] }>(
+        "/admin/testimonials?all=1",
+      );
       if (res.data.success) setTestimonials(res.data.data);
     } finally {
       setLoading(false);
@@ -1181,25 +1588,68 @@ export function TestimonialsAdminPage() {
       title="Manajemen Testimoni"
       subtitle="Kelola ulasan dan rating pelanggan yang tampil di website."
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        {testimonials.map((t) => (
-          <div key={t.id} className="bg-white rounded-2xl border border-pink-100 p-5 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <b className="text-sm">{t.customer_name}</b>
-                <span className="text-xs text-pink-600 font-medium">{t.roblox_username}</span>
-              </div>
-              <p className="text-xs text-muted-foreground italic mb-4">“{t.content}”</p>
-            </div>
-            <div className="flex justify-between items-center pt-3 border-t border-pink-50">
-              <span className="text-xs text-pink-500 font-bold">Rating: {t.rating}★</span>
-              <button onClick={() => handleDelete(t.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="page-toolbar">
+        <p className="max-w-lg text-xs leading-relaxed text-muted">
+          Testimoni yang tampil di landing page berasal dari pelanggan yang sudah menyelesaikan
+          pesanan.
+        </p>
+        <span className="badge">
+          <UsersRound size={12} /> {testimonials.length} testimoni
+        </span>
       </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="skeleton h-48" />
+          ))}
+        </div>
+      ) : testimonials.length === 0 ? (
+        <div className="empty-state">
+          <span className="empty-icon">
+            <Quote size={20} />
+          </span>
+          <h3>Belum ada testimoni</h3>
+          <p>Testimoni dari pelanggan akan muncul di sini setelah mereka mengirim ulasan.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {testimonials.map((t) => (
+            <article
+              key={t.id}
+              className="flex flex-col justify-between rounded-2xl border border-line bg-white p-5 shadow-soft"
+            >
+              <div>
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <Rating value={t.rating} />
+                  <Quote size={18} className="text-brand-200" />
+                </div>
+                <p className="text-xs leading-relaxed text-ink-soft">“{t.content}”</p>
+              </div>
+
+              <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="profile-avatar">{t.customer_name.slice(0, 2).toUpperCase()}</div>
+                  <div className="min-w-0">
+                    <b className="block truncate text-xs font-bold text-ink">{t.customer_name}</b>
+                    <span className="block truncate text-2xs text-muted">
+                      {t.roblox_username ? `@${t.roblox_username}` : "Pelanggan AVA Studio"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDelete(t.id)}
+                  className="row-action is-danger"
+                  aria-label={`Hapus testimoni ${t.customer_name}`}
+                  title="Hapus testimoni"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </AdminLayout>
   );
 }
@@ -1229,7 +1679,9 @@ export function SettingsAdminPage() {
       hero_badge: settings.hero_badge || "Styling avatar, made personal",
       operating_hours: settings.operating_hours || "Senin–Sabtu, 09.00–20.00 WIB",
       contact_email: settings.contact_email || "halo@avastudio.id",
-      footer_about: settings.footer_about || "Jasa styling avatar Roblox yang dibuat personal, detail, dan penuh karakter aesthetic.",
+      footer_about:
+        settings.footer_about ||
+        "Jasa styling avatar Roblox yang dibuat personal, detail, dan penuh karakter aesthetic.",
     },
   });
 
@@ -1355,167 +1807,261 @@ export function SettingsAdminPage() {
       title="Pengaturan Website"
       subtitle="Ubah logo brand, favicon, nomor WhatsApp, akun sosial media, dan teks promosi."
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="max-w-4xl bg-white rounded-2xl border border-pink-100 p-6 shadow-sm space-y-6">
-        {/* BRAND LOGO & FAVICON SECTION */}
-        <div className="bg-pink-50/50 p-6 rounded-3xl border border-pink-100 space-y-4">
-          <div>
-            <h3 className="font-bold text-base text-[#3D2636]">Logo Brand & Identitas Visual</h3>
-            <p className="text-xs text-muted-foreground">
-              Ganti logo default Figma dengan file logo resmi kamu (PNG, WebP, SVG, JPG hingga 50MB). Logo akan langsung tampil di navbar dan footer.
+      <form onSubmit={handleSubmit(onSubmit)} className="form-layout">
+        <div className="space-y-6">
+          {/* BRAND TEXT */}
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">1</span>
+              <div>
+                <h3>Identitas brand</h3>
+                <p>Nama dan tagline yang tampil di navbar, footer, dan judul tab.</p>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div>
+                <label className="field-label">Nama Brand Website</label>
+                <input {...register("site_name")} placeholder="AVA Studio" className="input" />
+              </div>
+
+              <div>
+                <label className="field-label">Tagline Brand</label>
+                <input
+                  {...register("site_tagline")}
+                  placeholder="Your Avatar, Your Style ♡"
+                  className="input"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* HERO */}
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">2</span>
+              <div>
+                <h3>Hero landing page</h3>
+                <p>Kalimat utama yang pertama dilihat pengunjung di halaman beranda.</p>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div className="span-2">
+                <label className="field-label">Hero Badge</label>
+                <input
+                  {...register("hero_badge")}
+                  placeholder="Styling avatar, made personal"
+                  className="input"
+                />
+              </div>
+
+              <div className="span-2">
+                <label className="field-label">Hero Headline Promosi</label>
+                <input
+                  {...register("hero_headline")}
+                  placeholder="Avatar kamu, main character-nya kamu."
+                  className="input"
+                />
+              </div>
+
+              <div className="span-2">
+                <label className="field-label">Hero Subheadline</label>
+                <textarea
+                  rows={3}
+                  {...register("hero_subheadline")}
+                  placeholder="Kami bantu wujudkan avatar Roblox yang bukan cuma bagus..."
+                  className="textarea"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* CONTACT */}
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">3</span>
+              <div>
+                <h3>Kontak & sosial media</h3>
+                <p>Dipakai untuk tombol WhatsApp, Instagram, dan email di seluruh website.</p>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div>
+                <label className="field-label">Nomor WhatsApp Admin (Aktif)</label>
+                <input
+                  {...register("whatsapp_number")}
+                  placeholder="6281234567890"
+                  className="input"
+                />
+                <small className="field-hint">
+                  Format internasional tanpa spasi, contoh: 6281234567890
+                </small>
+              </div>
+
+              <div>
+                <label className="field-label">Username Instagram</label>
+                <input
+                  {...register("instagram_username")}
+                  placeholder="@avastudio.id"
+                  className="input"
+                />
+              </div>
+
+              <div className="span-2">
+                <label className="field-label">Link URL Instagram</label>
+                <input
+                  {...register("instagram_url")}
+                  placeholder="https://instagram.com/avastudio.id"
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Email Kontak</label>
+                <input
+                  {...register("contact_email")}
+                  placeholder="halo@avastudio.id"
+                  className="input"
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Jam Operasional Layanan</label>
+                <input
+                  {...register("operating_hours")}
+                  placeholder="Senin–Sabtu, 09.00–20.00 WIB"
+                  className="input"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">4</span>
+              <div>
+                <h3>Footer website</h3>
+                <p>Deskripsi singkat brand yang tampil di bagian bawah halaman.</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="field-label">Tentang Brand (Footer)</label>
+              <textarea
+                rows={3}
+                {...register("footer_about")}
+                placeholder="Jasa styling avatar Roblox yang dibuat personal, detail, dan penuh karakter aesthetic."
+                className="textarea"
+              />
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" disabled={isSaving} className="btn btn-primary">
+              <Save size={16} /> {isSaving ? "Menyimpan Pengaturan..." : "Simpan Semua Pengaturan"}
+            </button>
+          </div>
+        </div>
+
+        {/* BRAND VISUAL SIDEBAR */}
+        <aside className="sticky-col">
+          <div className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">
+                <Sparkles size={15} />
+              </span>
+              <div>
+                <h3>Logo brand</h3>
+                <p>Tampil di navbar, footer, dan halaman admin.</p>
+              </div>
+            </div>
+
+            <div className="grid place-items-center rounded-xl border border-dashed border-line-strong bg-brand-25 p-4">
+              <div className="flex h-20 w-full max-w-[13rem] items-center justify-center overflow-hidden rounded-xl border border-line bg-white p-2">
+                {logoPreview ? (
+                  <img
+                    src={logoPreview}
+                    alt="Logo Preview"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-2xs font-bold text-brand-600">Default Icon</span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <label className="btn btn-outline btn-sm w-full cursor-pointer justify-center">
+                <UploadCloud size={14} /> {logoFile ? "Ganti File Terpilih" : "Pilih File Logo"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                />
+              </label>
+
+              {logoFile && (
+                <button
+                  type="button"
+                  onClick={handleDirectUploadLogo}
+                  disabled={isSaving}
+                  className="btn btn-primary btn-sm w-full"
+                >
+                  <Check size={14} /> {isSaving ? "Mengunggah..." : "Simpan Logo Ini"}
+                </button>
+              )}
+
+              {settings.site_logo && (
+                <button
+                  type="button"
+                  onClick={handleDeleteLogo}
+                  className="w-full text-center text-2xs font-semibold text-red-500 hover:underline"
+                >
+                  Hapus logo (reset ke bawaan)
+                </button>
+              )}
+
+              <small className="block text-center text-2xs text-faint">
+                {logoFile
+                  ? `File: ${logoFile.name} (${Math.round(logoFile.size / 1024)} KB)`
+                  : "PNG, WebP, SVG, JPG hingga 50MB."}
+              </small>
+            </div>
+          </div>
+
+          <div className="form-card">
+            <div className="flex items-center gap-2 border-b border-line pb-3">
+              <ImagePlus size={15} className="text-brand-600" />
+              <h3 className="text-sm font-extrabold text-ink">Favicon</h3>
+            </div>
+            <p className="mt-3 text-2xs leading-relaxed text-muted">
+              Ikon kecil yang muncul di sebelah judul tab browser.
+            </p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFaviconChange}
+              className="file-input mt-3"
+            />
+            {faviconFile && (
+              <p className="mt-2 text-2xs text-faint">File dipilih: {faviconFile.name}</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-brand-100 bg-brand-25 p-4">
+            <h4 className="flex items-center gap-2 text-xs font-extrabold text-brand-800">
+              <Sparkles size={14} /> Catatan
+            </h4>
+            <p className="mt-2 text-2xs leading-relaxed text-muted">
+              Perubahan baru aktif setelah kamu menekan “Simpan Semua Pengaturan”. Logo juga bisa
+              disimpan langsung lewat tombol simpan logo.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-[#3D2636] block">Pilih Logo Gambar</label>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="h-20 w-36 border-2 border-dashed border-pink-200 rounded-2xl bg-white flex items-center justify-center overflow-hidden p-2 shadow-xs">
-                  {logoPreview ? (
-                    <img src={logoPreview} alt="Logo Preview" className="max-h-full max-w-full object-contain" />
-                  ) : (
-                    <span className="text-xs text-pink-400 font-semibold text-center">Default Icon</span>
-                  )}
-                </div>
-                
-                <div className="space-y-2 w-full sm:w-auto">
-                  <label className="btn btn-outline text-xs cursor-pointer w-full text-center inline-block">
-                    {logoFile ? "Ganti File Terpilih" : "Pilih File Logo"}
-                    <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
-                  </label>
-
-                  {logoFile && (
-                    <button
-                      type="button"
-                      onClick={handleDirectUploadLogo}
-                      disabled={isSaving}
-                      className="btn btn-primary text-xs w-full"
-                    >
-                      {isSaving ? "Mengunggah..." : "✓ Simpan Logo Ini"}
-                    </button>
-                  )}
-
-                  {settings.site_logo && (
-                    <button
-                      type="button"
-                      onClick={handleDeleteLogo}
-                      className="text-[11px] text-red-500 hover:underline block text-center w-full"
-                    >
-                      Hapus Logo (Reset ke Bawaan)
-                    </button>
-                  )}
-                </div>
-              </div>
-              <small className="text-[10px] text-muted-foreground block">
-                {logoFile ? `File: ${logoFile.name} (${Math.round(logoFile.size / 1024)} KB)` : "Mendukung resolusi tinggi hingga 50MB."}
-              </small>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-[#3D2636] block">Upload Favicon Tab Browser (.png / .ico)</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFaviconChange}
-                className="w-full text-xs text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-100 file:text-pink-700 cursor-pointer"
-              />
-              <small className="text-[10px] text-muted-foreground block">
-                Ikon kecil yang muncul di sebelah judul tab browser kamu.
-              </small>
-            </div>
-          </div>
-        </div>
-
-        {/* GENERAL SETTINGS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold block mb-1">Nama Brand Website</label>
-            <input
-              {...register("site_name")}
-              placeholder="AVA Studio"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1">Tagline Brand</label>
-            <input
-              {...register("site_tagline")}
-              placeholder="Your Avatar, Your Style ♡"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1">Nomor WhatsApp Admin (Aktif)</label>
-            <input
-              {...register("whatsapp_number")}
-              placeholder="6281234567890"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-            <small className="text-[11px] text-muted-foreground">Gunakan format internasional tanpa spasi (cth: 6281234567890)</small>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1">Username Instagram</label>
-            <input
-              {...register("instagram_username")}
-              placeholder="@avastudio.id"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs font-semibold block mb-1">Link URL Instagram</label>
-            <input
-              {...register("instagram_url")}
-              placeholder="https://instagram.com/avastudio.id"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs font-semibold block mb-1">Hero Headline Promosi</label>
-            <input
-              {...register("hero_headline")}
-              placeholder="Avatar kamu, main character-nya kamu."
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs font-semibold block mb-1">Hero Subheadline</label>
-            <textarea
-              rows={2}
-              {...register("hero_subheadline")}
-              placeholder="Kami bantu wujudkan avatar Roblox yang bukan cuma bagus..."
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1">Jam Operasional Layanan</label>
-            <input
-              {...register("operating_hours")}
-              placeholder="Senin–Sabtu, 09.00–20.00 WIB"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1">Email Kontak</label>
-            <input
-              {...register("contact_email")}
-              placeholder="halo@avastudio.id"
-              className="w-full px-3 py-2 rounded-xl border border-pink-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-4 border-t border-pink-100">
-          <button type="submit" disabled={isSaving} className="btn btn-primary flex items-center gap-2">
-            <Save size={16} /> {isSaving ? "Menyimpan Pengaturan..." : "Simpan Semua Pengaturan"}
-          </button>
-        </div>
+        </aside>
       </form>
     </AdminLayout>
   );
