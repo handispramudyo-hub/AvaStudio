@@ -1,6 +1,8 @@
 node_modules/
 dist/
 build/
+# Generated deploy bundle (see DEPLOY.md) — build locally, do not commit.
+ava-web.tar.gz
 .cache/
 .env*
 !backend/.env.example
