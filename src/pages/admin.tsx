@@ -6,6 +6,7 @@ import {
   EyeOff,
   ImagePlus,
   Inbox,
+  KeyRound,
   Layers3,
   MessageCircle,
   PackageOpen,
@@ -43,8 +44,22 @@ const loginSchema = z.object({
 });
 type LoginForm = z.infer<typeof loginSchema>;
 
+const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, "Masukkan password saat ini."),
+    password: z.string().min(8, "Password baru minimal 8 karakter."),
+    password_confirmation: z.string().min(1, "Ulangi password baru kamu."),
+  })
+  .refine((data) => data.password === data.password_confirmation, {
+    path: ["password_confirmation"],
+    message: "Konfirmasi password tidak sama.",
+  });
+type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
+
 export function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
+  const [slides, setSlides] = useState<Avatar[]>([]);
+  const [activeSlide, setActiveSlide] = useState(0);
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
 
@@ -54,13 +69,37 @@ export function AdminLoginPage() {
     }
   }, [isAuthenticated, navigate]);
 
+  // Showcase: ambil avatar yang punya cover image untuk slideshow.
+  useEffect(() => {
+    api
+      .get<{ success: boolean; data: Avatar[] }>("/avatars?per_page=8")
+      .then((res) => {
+        if (res.data.success) {
+          setSlides((res.data.data || []).filter((ava) => Boolean(ava.cover_image)));
+        }
+      })
+      .catch(() => {
+        /* showcase bersifat opsional — diamkan bila gagal */
+      });
+  }, []);
+
+  // Auto-slide, hormati preferensi reduced-motion.
+  useEffect(() => {
+    if (slides.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      setActiveSlide((index) => (index + 1) % slides.length);
+    }, 3800);
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "admin@avastudio.id", password: "AdminAvaStudio2026!" },
+    defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = async (values: LoginForm) => {
@@ -84,12 +123,38 @@ export function AdminLoginPage() {
       <section className="login-brand">
         <Logo />
         <div className="login-visual">
-          <div className="login-art-card back">
-            <AvatarArt name="Strawberry Dream" />
+          <div className="login-carousel">
+            {slides.length > 0 ? (
+              slides.map((ava, index) => (
+                <figure
+                  key={ava.id}
+                  className={`login-slide ${index === activeSlide ? "is-active" : ""}`}
+                >
+                  <AvatarArt imageSrc={ava.cover_image} name={ava.name} />
+                  <figcaption>{ava.name}</figcaption>
+                </figure>
+              ))
+            ) : (
+              <figure className="login-slide is-active">
+                <AvatarArt name="AVA Studio" />
+              </figure>
+            )}
           </div>
-          <div className="login-art-card">
-            <AvatarArt name="AVA Studio" />
-          </div>
+
+          {slides.length > 1 && (
+            <div className="login-dots">
+              {slides.map((ava, index) => (
+                <button
+                  key={ava.id}
+                  type="button"
+                  className={index === activeSlide ? "is-active" : ""}
+                  onClick={() => setActiveSlide(index)}
+                  aria-label={`Tampilkan ${ava.name}`}
+                />
+              ))}
+            </div>
+          )}
+
           <span className="login-floating">
             <Sparkles /> <b>Make every AVA feel special.</b>
           </span>
@@ -113,7 +178,12 @@ export function AdminLoginPage() {
 
           <label className="field">
             <span>Email Admin</span>
-            <input {...register("email")} placeholder="admin@avastudio.id" />
+            <input
+              type="email"
+              autoComplete="username"
+              {...register("email")}
+              placeholder="nama@email.com"
+            />
             {errors.email && <small className="field-error">{errors.email.message}</small>}
           </label>
 
@@ -122,6 +192,7 @@ export function AdminLoginPage() {
             <div className="password-input">
               <input
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 {...register("password")}
                 placeholder="••••••••"
               />
@@ -1664,6 +1735,34 @@ export function SettingsAdminPage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPassword,
+    formState: { errors: passwordErrors },
+  } = useForm<ChangePasswordForm>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { current_password: "", password: "", password_confirmation: "" },
+  });
+
+  const onChangePassword = async (values: ChangePasswordForm) => {
+    setIsSavingPassword(true);
+    try {
+      const res = await api.put("/admin/password", values);
+      if (res.data.success) {
+        toast.success("Password admin berhasil diperbarui.");
+        resetPassword();
+      }
+    } catch (err: any) {
+      const errors = err.response?.data?.errors;
+      const msg = errors ? Object.values(errors).flat()[0] : err.response?.data?.message;
+      toast.error(String(msg || "Gagal memperbarui password."));
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
@@ -1805,10 +1904,10 @@ export function SettingsAdminPage() {
   return (
     <AdminLayout
       title="Pengaturan Website"
-      subtitle="Ubah logo brand, favicon, nomor WhatsApp, akun sosial media, dan teks promosi."
+      subtitle="Ubah logo brand, favicon, kontak, teks promosi, dan password admin."
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="form-layout">
-        <div className="space-y-6">
+      <div className="form-layout">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* BRAND TEXT */}
           <div className="form-card">
             <div className="form-section-head">
@@ -1964,7 +2063,7 @@ export function SettingsAdminPage() {
               <Save size={16} /> {isSaving ? "Menyimpan Pengaturan..." : "Simpan Semua Pengaturan"}
             </button>
           </div>
-        </div>
+        </form>
 
         {/* BRAND VISUAL SIDEBAR */}
         <aside className="sticky-col">
@@ -2052,6 +2151,73 @@ export function SettingsAdminPage() {
             )}
           </div>
 
+          {/* CHANGE PASSWORD */}
+          <form onSubmit={handlePasswordSubmit(onChangePassword)} className="form-card">
+            <div className="form-section-head">
+              <span className="form-step">
+                <KeyRound size={15} />
+              </span>
+              <div>
+                <h3>Keamanan akun</h3>
+                <p>Ganti password admin secara berkala.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="field-label">Password saat ini</label>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  {...registerPassword("current_password")}
+                  placeholder="••••••••"
+                  className="input"
+                />
+                {passwordErrors.current_password && (
+                  <small className="field-error">{passwordErrors.current_password.message}</small>
+                )}
+              </div>
+
+              <div>
+                <label className="field-label">Password baru</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  {...registerPassword("password")}
+                  placeholder="Minimal 8 karakter"
+                  className="input"
+                />
+                {passwordErrors.password && (
+                  <small className="field-error">{passwordErrors.password.message}</small>
+                )}
+              </div>
+
+              <div>
+                <label className="field-label">Ulangi password baru</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  {...registerPassword("password_confirmation")}
+                  placeholder="Ulangi password baru"
+                  className="input"
+                />
+                {passwordErrors.password_confirmation && (
+                  <small className="field-error">
+                    {passwordErrors.password_confirmation.message}
+                  </small>
+                )}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSavingPassword}
+              className="btn btn-primary btn-sm mt-4 w-full justify-center"
+            >
+              <KeyRound size={14} /> {isSavingPassword ? "Menyimpan..." : "Ganti Password"}
+            </button>
+          </form>
+
           <div className="rounded-2xl border border-brand-100 bg-brand-25 p-4">
             <h4 className="flex items-center gap-2 text-xs font-extrabold text-brand-800">
               <Sparkles size={14} /> Catatan
@@ -2062,7 +2228,7 @@ export function SettingsAdminPage() {
             </p>
           </div>
         </aside>
-      </form>
+      </div>
     </AdminLayout>
   );
 }
